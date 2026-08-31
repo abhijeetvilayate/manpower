@@ -1,0 +1,9 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: manpower-backend
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://vilayateabhijeet1073_db_user:i4Le3SOI4OpgW03f@test.7odiwof.mongodb.net/alaqsha_manpower?retryWrites=true&w=majority}

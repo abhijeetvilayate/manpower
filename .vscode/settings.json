@@ -1,0 +1,9 @@
+{
+  "java.import.maven.enabled": true,
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "java.project.sourcePaths": [
+    "backend/src/main/java"
+  ],
+  "css.lint.unknownAtRules": "ignore",
+  "java.compile.nullAnalysis.mode": "automatic"
+}
