@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getServicesData } from '../data/servicesData';
+import { getIndustriesData } from '../data/industriesData';
 import {
   TrendingUp,
   GraduationCap,
@@ -16,7 +18,11 @@ import {
   Clock,
   Filter,
   Search,
-  X
+  X,
+  FileCheck,
+  ArrowRight,
+  Sparkles,
+  PhoneCall
 } from 'lucide-react';
 import Navbar from '../components/sections/Navbar';
 import PageHeader from '../components/common/PageHeader';
@@ -121,11 +127,9 @@ export default function CareersPage({
   const [titleFilter, setTitleFilter] = useState('');
   const [deadlineFilter, setDeadlineFilter] = useState('ALL');
 
-  // Update industryFilter whenever initialIndustryFilter prop changes
   useEffect(() => {
     if (initialIndustryFilter) {
       setIndustryFilter(initialIndustryFilter);
-      // Scroll to openings section smoothly
       const openingsEl = document.getElementById('openings');
       if (openingsEl) {
         openingsEl.scrollIntoView({ behavior: 'smooth' });
@@ -133,7 +137,6 @@ export default function CareersPage({
     }
   }, [initialIndustryFilter]);
 
-  // Default sample vacancies across all industries & services if none added by admin
   const DEFAULT_VACANCIES = [
     {
       id: 'def-1',
@@ -203,15 +206,12 @@ export default function CareersPage({
     }
   ];
 
-  // Load dynamic jobs created by owner or merge with defaults
   const storedJobs = JSON.parse(localStorage.getItem('adminJobs') || '[]');
   const OPEN_POSITIONS = storedJobs.length > 0 ? storedJobs : DEFAULT_VACANCIES;
 
-  // Filter job openings based on Industry, Service, Title, and Deadline
   const filteredJobs = OPEN_POSITIONS.filter(j => {
     const today = new Date().toISOString().split('T')[0];
 
-    // Deadline check
     if (deadlineFilter === 'ACTIVE' && j.deadline && j.deadline < today) {
       return false;
     }
@@ -222,29 +222,26 @@ export default function CareersPage({
       if (j.deadline < today || j.deadline > d30Str) return false;
     }
 
-    // Industry check
     if (industryFilter) {
       const indLower = industryFilter.toLowerCase();
       const matchInd = (j.industryTag && j.industryTag.toLowerCase().includes(indLower)) ||
-                       (j.title && j.title.toLowerCase().includes(indLower)) ||
-                       (j.serviceCategory && j.serviceCategory.toLowerCase().includes(indLower)) ||
-                       (j.reqs && j.reqs.some(r => r.toLowerCase().includes(indLower)));
+        (j.title && j.title.toLowerCase().includes(indLower)) ||
+        (j.serviceCategory && j.serviceCategory.toLowerCase().includes(indLower)) ||
+        (j.reqs && j.reqs.some(r => r.toLowerCase().includes(indLower)));
       if (!matchInd) return false;
     }
 
-    // Service check
     if (serviceFilter) {
       const srvLower = serviceFilter.toLowerCase();
       const matchSrv = (j.serviceCategory && j.serviceCategory.toLowerCase().includes(srvLower)) ||
-                       (j.title && j.title.toLowerCase().includes(srvLower));
+        (j.title && j.title.toLowerCase().includes(srvLower));
       if (!matchSrv) return false;
     }
 
-    // Title search check
     if (titleFilter) {
       const titleLower = titleFilter.toLowerCase();
       const matchTitle = (j.title && j.title.toLowerCase().includes(titleLower)) ||
-                         (j.location && j.location.toLowerCase().includes(titleLower));
+        (j.location && j.location.toLowerCase().includes(titleLower));
       if (!matchTitle) return false;
     }
 
@@ -284,7 +281,6 @@ export default function CareersPage({
       createdAt: new Date().toISOString().replace('T', ' ').substring(0, 16)
     };
 
-    // 1. Save application locally for owner portal with QuotaExceededError protection
     const isDuplicate = storedApps.some(app =>
       app.email === newApplication.email &&
       app.jobTitle === newApplication.jobTitle &&
@@ -296,7 +292,6 @@ export default function CareersPage({
       try {
         localStorage.setItem('jobApplications', JSON.stringify(updatedApps));
       } catch (quotaErr) {
-        console.warn('LocalStorage quota exceeded while storing base64 PDF. Saving candidate record safely without heavy base64 payload:', quotaErr);
         try {
           const lightweightApps = updatedApps.map(a => ({ ...a, resumeDataUrl: '' }));
           localStorage.setItem('jobApplications', JSON.stringify(lightweightApps));
@@ -304,29 +299,23 @@ export default function CareersPage({
           try {
             const prunedApps = updatedApps.slice(0, 20).map(a => ({ ...a, resumeDataUrl: '' }));
             localStorage.setItem('jobApplications', JSON.stringify(prunedApps));
-          } catch (finalErr) {
-            console.error('Unable to save to localStorage due to browser storage quota:', finalErr);
-          }
+          } catch (finalErr) { }
         }
       }
     }
 
-    // 2. Dispatch to backend API with 2-second timeout failsafe
     try {
       const apiPayload = { ...newApplication };
-      delete apiPayload.resumeDataUrl; // Strip heavy base64 before HTTP request
+      delete apiPayload.resumeDataUrl;
       await axios.post('/api/jobs/apply', apiPayload, { timeout: 2000 });
-    } catch (err) {
-      console.warn('Backend API notification skipped or timed out, saved application locally for owner:', err.message);
-    }
+    } catch (err) { }
 
-    // 3. Complete submission UI immediately
     setIsSubmitting(false);
     setApplySuccess(true);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col animate-fade-in">
+    <div className="min-h-screen bg-[#F9F9F7] font-sans text-[#121417] flex flex-col font-sans">
       {/* 1. Header Navigation Bar */}
       <Navbar
         activePage="careers"
@@ -342,88 +331,96 @@ export default function CareersPage({
       {/* 2. Page Header / Breadcrumb */}
       <PageHeader
         title="Careers & Opportunities"
-        subtitle="Join AL-AQSHA Manpower Supply and build a rewarding career across GCC countries."
+        subtitle="Join AL-AQSHA MANPOWER CONSULTANCY and build a rewarding career across GCC countries."
         breadcrumbs={[
           { label: 'Home', onClick: onNavigateHome },
           { label: 'Careers' }
         ]}
+        onNavigateHome={onNavigateHome}
+        onNavigateAbout={onNavigateAbout}
+        onNavigateServices={onNavigateServices}
+        onNavigateIndustries={onNavigateIndustries}
+        onNavigateCareers={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onNavigateContact={onNavigateContact}
       />
 
-      {/* 3. Main Target Careers Layout */}
-      <section className="py-16 sm:py-20 bg-[#0B1B3D] text-white">
+      {/* SECTION 1: Career Overview & Hero */}
+      <section className="py-16 sm:py-20 bg-white border-b border-[#E8E3D5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-16">
-            <div className="lg:col-span-7 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7 space-y-6 animate-slide-left">
               <div>
-                <span className="text-amber-400 font-bold uppercase tracking-widest text-xs block mb-1">
-                  CAREERS
+                <span className="text-[#D4AF37] font-heading font-extrabold uppercase tracking-widest text-xs inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#D4AF37]/10 rounded-full border border-[#D4AF37]/30 mb-3 shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  CAREERS AT AL-AQSHA
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-                  Build Your Career With Us
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#0B0C10] tracking-tight leading-tight">
+                  Build Your Career <span className="text-gold-shimmer">With Us</span>
                 </h2>
               </div>
 
-              <p className="text-slate-300 text-sm leading-relaxed">
-                Join AL-AQSHA Manpower Supply and be part of a team that values people, growth and excellence. We recruit and deploy candidate talent across Gulf Countries with legal visa clearance, comprehensive medical insurance, and safe work environments.
+              <p className="text-stone-600 text-sm sm:text-base leading-relaxed font-body">
+                Join AL-AQSHA MANPOWER CONSULTANCY and be part of an esteemed workforce operating across United Arab Emirates, Saudi Arabia, Qatar, Oman, Kuwait, and Bahrain. We empower talent with legal visa clearance, comprehensive medical insurance, trade certification, and safe work environments.
               </p>
 
               {/* 4 Feature Badges */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 font-body">
+                <div className="flex items-center gap-3.5 p-4 rounded-xl bg-[#FAF9F5] border border-[#E8E3D5] hover:border-[#D4AF37] transition-all shadow-sm group">
+                  <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center flex-shrink-0 font-bold group-hover:scale-110 transition-transform">
                     <TrendingUp className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-white text-xs sm:text-sm">Career Growth</h4>
-                    <p className="text-slate-400 text-[11px]">Clear advancement pathways</p>
+                    <h4 className="font-heading font-extrabold text-[#0B0C10] text-xs sm:text-sm">Career Advancement</h4>
+                    <p className="text-stone-500 text-[11px]">Structured skill promotion</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3.5 p-4 rounded-xl bg-[#FAF9F5] border border-[#E8E3D5] hover:border-[#D4AF37] transition-all shadow-sm group">
+                  <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center flex-shrink-0 font-bold group-hover:scale-110 transition-transform">
                     <GraduationCap className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-white text-xs sm:text-sm">Training & Development</h4>
-                    <p className="text-slate-400 text-[11px]">Trade testing & skill centers</p>
+                    <h4 className="font-heading font-extrabold text-[#0B0C10] text-xs sm:text-sm">Trade Skill Training</h4>
+                    <p className="text-stone-500 text-[11px]">Certified trade test centers</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3.5 p-4 rounded-xl bg-[#FAF9F5] border border-[#E8E3D5] hover:border-[#D4AF37] transition-all shadow-sm group">
+                  <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center flex-shrink-0 font-bold group-hover:scale-110 transition-transform">
                     <HeartHandshake className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-white text-xs sm:text-sm">Supportive Environment</h4>
-                    <p className="text-slate-400 text-[11px]">Accommodation & welfare care</p>
+                    <h4 className="font-heading font-extrabold text-[#0B0C10] text-xs sm:text-sm">Worker Welfare</h4>
+                    <p className="text-stone-500 text-[11px]">Accommodation &amp; medical care</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <div className="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <div className="flex items-center gap-3.5 p-4 rounded-xl bg-[#FAF9F5] border border-[#E8E3D5] hover:border-[#D4AF37] transition-all shadow-sm group">
+                  <div className="w-10 h-10 rounded-lg bg-[#D4AF37]/15 text-[#D4AF37] flex items-center justify-center flex-shrink-0 font-bold group-hover:scale-110 transition-transform">
                     <Scale className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-white text-xs sm:text-sm">Equal Opportunities</h4>
-                    <p className="text-slate-400 text-[11px]">Fair wages & legal contracts</p>
+                    <h4 className="font-heading font-extrabold text-[#0B0C10] text-xs sm:text-sm">Fair &amp; Legal Contracts</h4>
+                    <p className="text-stone-500 text-[11px]">MOHRE &amp; GCC compliant wages</p>
                   </div>
                 </div>
               </div>
 
-              {/* Solid Gold View Openings Button */}
-              <div className="pt-4">
+              {/* View Openings Action Button */}
+              <div className="pt-3">
                 <a
                   href="#openings"
-                  className="inline-block bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-slate-950 font-black text-xs uppercase px-9 py-3.5 rounded-md shadow-md transition-all transform hover:-translate-y-0.5 tracking-wider cursor-pointer"
+                  className="inline-flex items-center gap-2 bg-gold-metallic hover:opacity-95 text-[#0B0C10] font-heading font-black text-xs uppercase px-8 py-3.5 rounded-xl shadow-lg transition-all transform hover:-translate-y-1 hover:shadow-xl tracking-wider cursor-pointer active:translate-y-0"
                 >
-                  VIEW OPENINGS
+                  <Briefcase className="w-4 h-4" />
+                  VIEW OPEN POSITIONS
                 </a>
               </div>
             </div>
 
             {/* Team Photo Card */}
             <div className="lg:col-span-5">
-              <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-700/60 relative group">
+              <div className="rounded-2xl overflow-hidden shadow-xl border-4 border-[#E6E2D8] relative group">
                 <img
                   src="/images/career.png"
                   alt="AL-AQSHA Career Workers Team"
@@ -431,34 +428,102 @@ export default function CareersPage({
                     e.target.onerror = null;
                     e.target.src = '/career_team.jpg';
                   }}
-                  className="w-full h-[400px] object-cover group-hover:scale-105 transition-transform duration-700"
+                  className="w-full h-[380px] object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0B1B3D]/80 via-transparent to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#171717]/80 via-transparent to-transparent"></div>
+                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md p-3.5 rounded-xl border border-[#E6E2D8] shadow-lg flex items-center justify-between font-body">
+                  <div>
+                    <p className="font-heading font-extrabold text-[#171717] text-xs">GCC Manpower Deployment</p>
+                    <p className="text-[11px] text-stone-500">Over 50,000+ Personnel Deployed</p>
+                  </div>
+                  <span className="px-2.5 py-1 bg-[#C9A227]/20 text-[#171717] text-[10px] font-heading font-bold rounded-md border border-[#C9A227]/40">
+                    Verified
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Open Positions Listings */}
-      <section id="openings" className="py-16 bg-slate-100">
+      {/* SECTION 2: Why Choose Us (Deep Obsidian Theme bg-[#0B0C10]) */}
+      <section className="py-16 sm:py-20 bg-[#0B0C10] text-white border-b border-[#12131A] relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-14">
+            <span className="text-[#D4AF37] font-heading font-extrabold uppercase tracking-widest text-xs block mb-2">
+              WHY CHOOSE US
+            </span>
+            <h3 className="text-3xl sm:text-4xl font-heading font-black text-white tracking-tight">
+              Complete Support From Sourcing To Deployment
+            </h3>
+            <p className="text-slate-300 text-xs sm:text-sm mt-3 leading-relaxed font-body">
+              We ensure smooth recruitment, legal visa authorization, and long-term career stability for candidates joining GCC enterprises.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 font-body">
+            <div className="bg-[#12131A] p-6 rounded-2xl border border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all hover:-translate-y-1 group">
+              <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center mb-5 font-extrabold group-hover:scale-110 transition-transform">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h4 className="font-heading font-extrabold text-white text-base mb-2">100% Legal Visas</h4>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Full embassy attestation, ministry work permits, and employment visa issuance without hassle.
+              </p>
+            </div>
+
+            <div className="bg-[#12131A] p-6 rounded-2xl border border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all hover:-translate-y-1 group">
+              <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center mb-5 font-extrabold group-hover:scale-110 transition-transform">
+                <HeartHandshake className="w-6 h-6" />
+              </div>
+              <h4 className="font-heading font-extrabold text-white text-base mb-2">Medical &amp; Housing</h4>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Comprehensive health insurance, safe housing quarters, and medical emergency assistance.
+              </p>
+            </div>
+
+            <div className="bg-[#12131A] p-6 rounded-2xl border border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all hover:-translate-y-1 group">
+              <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center mb-5 font-extrabold group-hover:scale-110 transition-transform">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <h4 className="font-heading font-extrabold text-white text-base mb-2">Trade Skill Testing</h4>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Practical assessment and trade certification in technical centers prior to site deployment.
+              </p>
+            </div>
+
+            <div className="bg-[#12131A] p-6 rounded-2xl border border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all hover:-translate-y-1 group">
+              <div className="w-12 h-12 rounded-xl bg-[#D4AF37]/20 text-[#D4AF37] flex items-center justify-center mb-5 font-extrabold group-hover:scale-110 transition-transform">
+                <Scale className="w-6 h-6" />
+              </div>
+              <h4 className="font-heading font-extrabold text-white text-base mb-2">Transparent Wages</h4>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Guaranteed competitive salary structures with on-time WPS bank payments and overtime pay.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: Open Positions & Vacancy Filters */}
+      <section id="openings" className="py-16 sm:py-20 bg-[#E6E2D8]/40 border-b border-[#E6E2D8]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-amber-500 font-bold uppercase tracking-widest text-xs block mb-1">
+            <span className="text-[#C9A227] font-heading font-extrabold uppercase tracking-widest text-xs block mb-1">
               CURRENT VACANCIES
             </span>
-            <h3 className="text-3xl font-black text-slate-900 tracking-tight">Active Job Openings</h3>
-            <p className="text-slate-600 text-xs sm:text-sm mt-2">
+            <h3 className="text-3xl font-heading font-black text-[#171717] tracking-tight">Active Job Openings</h3>
+            <p className="text-stone-600 text-xs sm:text-sm mt-2 font-body">
               Apply directly for GCC deployment opportunities. Free visa processing &amp; medical support.
             </p>
           </div>
 
-          {/* Interactive Job Openings Filter Bar */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-md mb-10 space-y-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          {/* Filter Bar */}
+          <div className="bg-white p-6 rounded-2xl border border-[#E6E2D8] shadow-md mb-10 space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E6E2D8] pb-4">
               <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-amber-500" />
-                <h4 className="font-extrabold text-sm sm:text-base text-slate-900">Filter Vacancies</h4>
+                <Filter className="w-5 h-5 text-[#C9A227]" />
+                <h4 className="font-heading font-extrabold text-sm sm:text-base text-[#171717]">Filter Vacancies</h4>
               </div>
 
               {(industryFilter || serviceFilter || titleFilter || deadlineFilter !== 'ALL') && (
@@ -469,7 +534,7 @@ export default function CareersPage({
                     setTitleFilter('');
                     setDeadlineFilter('ALL');
                   }}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 transition-colors cursor-pointer"
+                  className="text-xs font-heading font-bold text-rose-700 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-200 transition-colors cursor-pointer"
                 >
                   Clear All Filters ✕
                 </button>
@@ -477,50 +542,45 @@ export default function CareersPage({
             </div>
 
             {/* Filter Inputs Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Filter 1: Industry */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-body">
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-heading font-bold text-stone-500 uppercase tracking-wider mb-1">
                   Filter by Industry
                 </label>
                 <select
                   value={industryFilter}
                   onChange={(e) => setIndustryFilter(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-medium focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] bg-[#F7F4EC] text-[#171717] font-medium focus:outline-none focus:border-[#C9A227]"
                 >
                   <option value="">All Industries</option>
-                  <option value="Construction">Construction</option>
-                  <option value="Oil & Gas">Oil &amp; Gas</option>
-                  <option value="Manufacturing">Manufacturing</option>
-                  <option value="Hospitality">Hospitality</option>
-                  <option value="Facility Management">Facility Management</option>
-                  <option value="Other Industries">Other Industries</option>
+                  {getIndustriesData().map((ind) => (
+                    <option key={ind.id} value={ind.name || ind.title}>
+                      {ind.name || ind.title}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Filter 2: Service Category */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-heading font-bold text-stone-500 uppercase tracking-wider mb-1">
                   Filter by Service
                 </label>
                 <select
                   value={serviceFilter}
                   onChange={(e) => setServiceFilter(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-medium focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] bg-[#F7F4EC] text-[#171717] font-medium focus:outline-none focus:border-[#C9A227]"
                 >
                   <option value="">All Services</option>
-                  <option value="Skilled Manpower Supply">Skilled Manpower Supply</option>
-                  <option value="Unskilled Manpower Supply">Unskilled Manpower Supply</option>
-                  <option value="Technical Manpower Supply">Technical Manpower Supply</option>
-                  <option value="Project-based Manpower Supply">Project-based Manpower Supply</option>
-                  <option value="Recruitment Process Outsourcing">Recruitment Process Outsourcing</option>
-                  <option value="Visa & Travel Assistance">Visa &amp; Travel Assistance</option>
+                  {getServicesData().map((srv) => (
+                    <option key={srv.id} value={srv.title}>
+                      {srv.title}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              {/* Filter 3: Title Keyword */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-heading font-bold text-stone-500 uppercase tracking-wider mb-1">
                   Job Opening Title / Keyword
                 </label>
                 <div className="relative">
@@ -529,21 +589,20 @@ export default function CareersPage({
                     placeholder="e.g. Electrician, Dubai..."
                     value={titleFilter}
                     onChange={(e) => setTitleFilter(e.target.value)}
-                    className="w-full text-xs px-3.5 py-2.5 pr-8 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-medium focus:outline-none focus:border-amber-500"
+                    className="w-full text-xs px-3.5 py-2.5 pr-8 rounded-xl border border-[#E6E2D8] bg-[#F7F4EC] text-[#171717] font-medium focus:outline-none focus:border-[#C9A227]"
                   />
-                  <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+                  <Search className="w-4 h-4 text-stone-400 absolute right-3 top-3 pointer-events-none" />
                 </div>
               </div>
 
-              {/* Filter 4: Deadline Date */}
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-heading font-bold text-stone-500 uppercase tracking-wider mb-1">
                   Application Deadline
                 </label>
                 <select
                   value={deadlineFilter}
                   onChange={(e) => setDeadlineFilter(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-800 font-medium focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] bg-[#F7F4EC] text-[#171717] font-medium focus:outline-none focus:border-[#C9A227]"
                 >
                   <option value="ALL">All Deadlines</option>
                   <option value="ACTIVE">Active Openings Only</option>
@@ -552,20 +611,19 @@ export default function CareersPage({
               </div>
             </div>
 
-            {/* Filter Active Badge */}
             {industryFilter && (
-              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-center justify-between text-xs text-amber-900 font-semibold">
+              <div className="bg-[#F7F4EC] border border-[#E6E2D8] p-3 rounded-xl flex items-center justify-between text-xs text-[#171717] font-semibold font-body">
                 <span>Filtering openings matching Industry: <strong>"{industryFilter}"</strong></span>
-                <span className="text-[11px] text-amber-700 font-extrabold">{filteredJobs.length} Vacancies Found</span>
+                <span className="text-[11px] text-[#C9A227] font-heading font-extrabold">{filteredJobs.length} Vacancies Found</span>
               </div>
             )}
           </div>
 
           {filteredJobs.length === 0 ? (
-            <div className="bg-white p-10 rounded-2xl border border-slate-200 text-center max-w-xl mx-auto shadow-sm my-4">
-              <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <h4 className="font-extrabold text-slate-900 text-base mb-1">No Matching Job Openings Found</h4>
-              <p className="text-xs text-slate-500 mb-5 leading-relaxed">
+            <div className="bg-white p-10 rounded-2xl border border-[#E6E2D8] text-center max-w-xl mx-auto shadow-sm my-4 font-body">
+              <Briefcase className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+              <h4 className="font-heading font-extrabold text-[#171717] text-base mb-1">No Matching Job Openings Found</h4>
+              <p className="text-xs text-stone-500 mb-5 leading-relaxed">
                 No vacancies match your selected filters. Try clearing filters or submit a general resume for upcoming recruitment drives.
               </p>
               <div className="flex justify-center gap-3">
@@ -576,84 +634,158 @@ export default function CareersPage({
                     setTitleFilter('');
                     setDeadlineFilter('ALL');
                   }}
-                  className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs uppercase px-4 py-2.5 rounded-lg transition-colors cursor-pointer"
+                  className="bg-[#E6E2D8] hover:bg-[#d5cfbe] text-[#171717] font-heading font-bold text-xs uppercase px-4 py-2.5 rounded-xl transition-colors cursor-pointer"
                 >
                   Reset Filters
                 </button>
                 <button
                   onClick={onOpenEnquiry}
-                  className="bg-[#0B1B3D] hover:bg-slate-800 text-amber-400 font-bold text-xs uppercase px-5 py-2.5 rounded-lg shadow-sm transition-colors cursor-pointer"
+                  className="bg-[#171717] hover:bg-[#262626] text-[#C9A227] font-heading font-bold text-xs uppercase px-5 py-2.5 rounded-xl shadow-sm transition-colors cursor-pointer"
                 >
                   Submit General Resume / Enquiry
                 </button>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-body">
               {filteredJobs.map((job) => (
-              <div key={job.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
-                <div>
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <h4 className="font-extrabold text-slate-900 text-base">{job.title}</h4>
-                    <span className="px-2.5 py-1 rounded bg-amber-50 text-amber-700 font-bold text-[10px] uppercase border border-amber-200 flex-shrink-0">
-                      {job.type}
-                    </span>
+                <div key={job.id} className="bg-white p-6 rounded-2xl border border-[#E6E2D8] border-l-4 border-l-[#C9A227] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <h4 className="font-heading font-extrabold text-[#171717] text-base">{job.title}</h4>
+                      <span className="px-2.5 py-1 rounded bg-[#C9A227]/10 text-[#C9A227] font-heading font-extrabold text-[10px] uppercase border border-[#C9A227]/30 flex-shrink-0">
+                        {job.type}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 text-xs text-stone-600 font-semibold mb-4">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-[#C9A227]" /> {job.location}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-emerald-600" /> {job.salary}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-500 font-medium mb-4">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-amber-500" /> {job.location}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-emerald-500" /> {job.salary}
-                    </span>
+                  <div className="pt-4 border-t border-[#E6E2D8] flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-stone-500">Deadline: {job.deadline}</span>
+                    <button
+                      onClick={() => {
+                        setApplySuccess(false);
+                        setSelectedJob(job);
+                      }}
+                      className="bg-[#C9A227] hover:bg-[#B38F1F] text-[#171717] font-heading font-bold text-xs uppercase px-4 py-2 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Apply Now
+                    </button>
                   </div>
-
-                  <ul className="space-y-1.5 mb-6">
-                    {job.reqs.map((req, idx) => (
-                      <li key={idx} className="text-xs text-slate-600 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                        {req}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
-                <button
-                  onClick={() => {
-                    setApplySuccess(false);
-                    setSelectedJob(job);
-                  }}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-amber-500 hover:text-slate-950 text-white font-bold text-xs uppercase rounded transition-colors cursor-pointer"
-                >
-                  Apply For Position
-                </button>
-              </div>
-            ))}
+      {/* SECTION 4: Recruitment Process */}
+      <section className="py-16 bg-[#F7F4EC] border-t border-[#E6E2D8]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-[#C9A227] font-heading font-extrabold uppercase tracking-widest text-xs block mb-2">
+              HIRING PROCESS
+            </span>
+            <h2 className="text-3xl font-heading font-black text-[#171717] tracking-tight">
+              How Deployment Works
+            </h2>
+            <p className="text-xs sm:text-sm text-stone-600 mt-2 font-body">
+              Our 4-step streamlined process ensures fast, compliant workforce deployment.
+            </p>
           </div>
-        )}
-      </div>
-    </section>
 
-      {/* 5. Footer */}
-      <Footer
-        onNavigateHome={onNavigateHome}
-        onNavigateAbout={onNavigateAbout}
-        onNavigateServices={onNavigateServices}
-        onNavigateIndustries={onNavigateIndustries}
-        onNavigateCareers={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        onNavigateContact={onNavigateContact}
-      />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 font-body">
+            <div className="bg-white p-6 rounded-2xl border border-[#E6E2D8] text-center shadow-sm">
+              <span className="w-10 h-10 rounded-full bg-[#C9A227]/20 text-[#C9A227] font-heading font-black text-sm flex items-center justify-center mx-auto mb-4">
+                01
+              </span>
+              <h4 className="font-heading font-extrabold text-[#171717] text-base mb-2">Application</h4>
+              <p className="text-stone-600 text-xs leading-relaxed">
+                Submit your CV online or register at our overseas recruitment centers.
+              </p>
+            </div>
 
-      {/* 6. Apply Job Modal */}
+            <div className="bg-white p-6 rounded-2xl border border-[#E6E2D8] text-center shadow-sm">
+              <span className="w-10 h-10 rounded-full bg-[#C9A227]/20 text-[#C9A227] font-heading font-black text-sm flex items-center justify-center mx-auto mb-4">
+                02
+              </span>
+              <h4 className="font-heading font-extrabold text-[#171717] text-base mb-2">Trade Testing</h4>
+              <p className="text-stone-600 text-xs leading-relaxed">
+                Practical assessment by certified engineers for technical roles.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-[#E6E2D8] text-center shadow-sm">
+              <span className="w-10 h-10 rounded-full bg-[#C9A227]/20 text-[#C9A227] font-heading font-black text-sm flex items-center justify-center mx-auto mb-4">
+                03
+              </span>
+              <h4 className="font-heading font-extrabold text-[#171717] text-base mb-2">Medical &amp; Visa</h4>
+              <p className="text-stone-600 text-xs leading-relaxed">
+                GAMCA medical test, PCC police verification, and visa stamping.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-[#E6E2D8] text-center shadow-sm">
+              <span className="w-10 h-10 rounded-full bg-[#C9A227]/20 text-[#C9A227] font-heading font-black text-sm flex items-center justify-center mx-auto mb-4">
+                04
+              </span>
+              <h4 className="font-heading font-extrabold text-[#171717] text-base mb-2">GCC Deployment</h4>
+              <p className="text-stone-600 text-xs leading-relaxed">
+                Flight ticket arrangement, airport reception, and housing placement.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 5: Call To Action Banner */}
+      <section className="py-14 bg-[#171717] text-white border-t border-[#262626]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
+          <h3 className="text-2xl sm:text-3xl font-heading font-black text-white tracking-tight">
+            Didn't Find a Matching Vacancy?
+          </h3>
+          <p className="text-stone-300 text-xs sm:text-sm max-w-2xl mx-auto leading-relaxed font-body">
+            Send us your resume directly or contact our candidate helpdesk. We register applicants in our talent database for upcoming Gulf recruitment drives.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 font-heading">
+            <button
+              onClick={onOpenEnquiry}
+              className="inline-flex items-center gap-2 bg-[#C9A227] hover:bg-[#B38F1F] text-[#171717] font-black text-xs uppercase px-8 py-3.5 rounded-xl shadow-md transition-all cursor-pointer transform hover:-translate-y-0.5"
+            >
+              <Send className="w-4 h-4" />
+              SUBMIT GENERAL RESUME
+            </button>
+            <button
+              onClick={onNavigateContact}
+              className="inline-flex items-center gap-2 bg-[#262626] hover:bg-[#383838] text-white font-extrabold text-xs uppercase px-8 py-3.5 rounded-xl border border-[#383838] transition-all cursor-pointer"
+            >
+              <PhoneCall className="w-4 h-4 text-[#C9A227]" />
+              CONTACT HELPDESK
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Job Application Modal */}
       {selectedJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 relative animate-scale-modal">
-            <div className="bg-[#0B1B3D] text-white px-6 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-base uppercase tracking-wider">Apply: {selectedJob.title}</h3>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-body">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-[#E6E2D8] overflow-hidden my-8">
+            <div className="bg-[#171717] p-5 text-white flex items-center justify-between border-b border-[#262626]">
+              <div>
+                <span className="text-[10px] font-heading font-extrabold text-[#C9A227] uppercase tracking-wider block">Job Application</span>
+                <h3 className="font-heading font-black text-base text-white leading-tight">{selectedJob.title}</h3>
+              </div>
               <button
                 onClick={() => setSelectedJob(null)}
-                className="text-slate-400 hover:text-white transition-colors p-1"
+                className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -662,14 +794,14 @@ export default function CareersPage({
             <div className="p-6">
               {applySuccess ? (
                 <div className="text-center py-6">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3 animate-bounce" />
-                  <h4 className="text-lg font-bold text-slate-900 mb-2">Application Submitted!</h4>
-                  <p className="text-xs text-slate-600 mb-6">
+                  <CheckCircle2 className="w-14 h-14 text-emerald-600 mx-auto mb-3 animate-bounce" />
+                  <h4 className="font-heading text-lg font-black text-[#171717] mb-1">Application Submitted Successfully!</h4>
+                  <p className="text-xs text-stone-600 mb-6 leading-relaxed">
                     Our HR team will review your application and contact you for trade testing and interview details.
                   </p>
                   <button
                     onClick={() => setSelectedJob(null)}
-                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-6 py-2.5 rounded-md text-xs uppercase"
+                    className="bg-[#C9A227] hover:bg-[#B38F1F] text-[#171717] font-heading font-bold px-6 py-2.5 rounded-xl text-xs uppercase shadow-md transition-colors cursor-pointer"
                   >
                     Close
                   </button>
@@ -677,49 +809,49 @@ export default function CareersPage({
               ) : (
                 <form onSubmit={handleApplySubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name *</label>
+                    <label className="block text-xs font-heading font-bold text-[#171717] uppercase mb-1">Full Name *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. Mohammed Salem"
                       value={applicantData.fullName}
                       onChange={(e) => setApplicantData({ ...applicantData, fullName: e.target.value })}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:border-amber-500"
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] focus:outline-none focus:border-[#C9A227] text-[#171717] font-medium"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email *</label>
+                      <label className="block text-xs font-heading font-bold text-[#171717] uppercase mb-1">Email *</label>
                       <input
                         type="email"
                         required
                         placeholder="mohammed@email.com"
                         value={applicantData.email}
                         onChange={(e) => setApplicantData({ ...applicantData, email: e.target.value })}
-                        className="w-full text-xs px-3.5 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:border-amber-500"
+                        className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] focus:outline-none focus:border-[#C9A227] text-[#171717] font-medium"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Phone / WhatsApp *</label>
+                      <label className="block text-xs font-heading font-bold text-[#171717] uppercase mb-1">Phone / WhatsApp *</label>
                       <input
                         type="tel"
                         required
                         placeholder="+971 50 987 6543"
                         value={applicantData.phone}
                         onChange={(e) => setApplicantData({ ...applicantData, phone: e.target.value })}
-                        className="w-full text-xs px-3.5 py-2.5 rounded-md border border-slate-300 focus:outline-none focus:border-amber-500"
+                        className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] focus:outline-none focus:border-[#C9A227] text-[#171717] font-medium"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Years of Experience *</label>
+                    <label className="block text-xs font-heading font-bold text-[#171717] uppercase mb-1">Years of Experience *</label>
                     <select
                       required
                       value={applicantData.experience}
                       onChange={(e) => setApplicantData({ ...applicantData, experience: e.target.value })}
-                      className="w-full text-xs px-3.5 py-2.5 rounded-md border border-slate-300 bg-white focus:outline-none focus:border-amber-500"
+                      className="w-full text-xs px-3.5 py-2.5 rounded-xl border border-[#E6E2D8] bg-white focus:outline-none focus:border-[#C9A227] text-[#171717] font-medium"
                     >
                       <option value="">-- Select Experience Level (Required) --</option>
                       <option value="1-2 Years">1-2 Years</option>
@@ -730,7 +862,7 @@ export default function CareersPage({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                    <label className="block text-xs font-heading font-bold text-[#171717] uppercase mb-1">
                       Upload Resume (PDF ONLY, Max 500 KB) <span className="text-rose-500">*</span>
                     </label>
                     <input
@@ -738,10 +870,10 @@ export default function CareersPage({
                       required
                       accept=".pdf,application/pdf"
                       onChange={handleResumeFileChange}
-                      className="w-full text-xs px-3 py-2 rounded-md border border-slate-300 bg-white focus:outline-none focus:border-amber-500 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-400 cursor-pointer"
+                      className="w-full text-xs px-3 py-2 rounded-xl border border-[#E6E2D8] bg-white focus:outline-none focus:border-[#C9A227] file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-heading file:font-bold file:bg-[#C9A227] file:text-[#171717] hover:file:bg-[#B38F1F] cursor-pointer"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Format: <span className="font-mono text-amber-700 font-bold">Firstname_Lastname_Resume.pdf</span> (Max Size: <span className="font-bold text-slate-700">500 KB</span>)
+                    <p className="text-[10px] text-stone-500 mt-1">
+                      Format: <span className="font-mono text-[#C9A227] font-bold">Firstname_Lastname_Resume.pdf</span> (Max Size: <span className="font-bold text-stone-700">500 KB</span>)
                     </p>
                     {pdfErr && (
                       <p className="text-[11px] text-rose-600 font-bold mt-1">{pdfErr}</p>
@@ -749,14 +881,14 @@ export default function CareersPage({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Cover Note / Remarks *</label>
+                    <label className="block text-xs font-heading font-bold text-[#171717] uppercase mb-1">Cover Note / Remarks *</label>
                     <textarea
                       rows={2}
                       required
                       placeholder="Briefly state your key certifications, current location, or passport status *"
                       value={applicantData.message}
                       onChange={(e) => setApplicantData({ ...applicantData, message: e.target.value })}
-                      className="w-full text-xs px-3.5 py-2 rounded-md border border-slate-300 focus:outline-none focus:border-amber-500"
+                      className="w-full text-xs px-3.5 py-2 rounded-xl border border-[#E6E2D8] focus:outline-none focus:border-[#C9A227] text-[#171717] font-medium"
                     ></textarea>
                   </div>
 
@@ -769,14 +901,14 @@ export default function CareersPage({
                     <button
                       type="button"
                       onClick={() => setSelectedJob(null)}
-                      className="px-4 py-2 rounded-md text-slate-600 font-bold text-xs uppercase"
+                      className="px-4 py-2 rounded-xl text-stone-600 font-heading font-bold text-xs uppercase"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs uppercase px-6 py-2.5 rounded-lg shadow-md transition-all cursor-pointer transform active:scale-95 disabled:opacity-50"
+                      className="inline-flex items-center justify-center gap-2 bg-[#C9A227] hover:bg-[#B38F1F] text-[#171717] font-heading font-extrabold text-xs uppercase px-6 py-2.5 rounded-xl shadow-md transition-all cursor-pointer transform active:scale-95 disabled:opacity-50"
                     >
                       <Send className="w-4 h-4" />
                       {isSubmitting ? 'Submitting Application...' : 'Submit Application'}
@@ -788,6 +920,16 @@ export default function CareersPage({
           </div>
         </div>
       )}
+
+      {/* 5. Footer */}
+      <Footer
+        onNavigateHome={onNavigateHome}
+        onNavigateAbout={onNavigateAbout}
+        onNavigateServices={onNavigateServices}
+        onNavigateIndustries={onNavigateIndustries}
+        onNavigateCareers={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onNavigateContact={onNavigateContact}
+      />
     </div>
   );
 }

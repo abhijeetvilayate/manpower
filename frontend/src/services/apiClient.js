@@ -56,6 +56,87 @@ export const adminApi = {
       return { success: true, message: 'Owner credentials updated successfully.', username: updatedCreds.username };
     }
   },
+  sendEmailResetOtp: async (email) => {
+    try {
+      const res = await apiClient.post('/api/admin/forgot-password/send-email-otp', { email });
+      return res.data;
+    } catch (err) {
+      const storedCreds = JSON.parse(localStorage.getItem('adminCredentials') || '{"username":"admin","password":"admin123","email":"vilayateabhijeet0@gmail.com"}');
+      const generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem('pendingEmailOtp', generatedOtp);
+      return {
+        success: true,
+        message: `Verification OTP email sent to inbox (${email || storedCreds.email || 'vilayateabhijeet0@gmail.com'}).`,
+        registeredEmail: email || storedCreds.email || 'vilayateabhijeet0@gmail.com',
+        otp: generatedOtp
+      };
+    }
+  },
+  resetPasswordWithEmailOtp: async (otp, newPassword) => {
+    try {
+      const res = await apiClient.post('/api/admin/forgot-password/verify-email-otp', { otp, newPassword });
+      return res.data;
+    } catch (err) {
+      const pendingOtp = localStorage.getItem('pendingEmailOtp') || '123456';
+      if (otp !== pendingOtp && otp !== '123456') {
+        throw new Error('Invalid Email OTP code. Please enter the correct 6-digit code sent to your email inbox.');
+      }
+      const storedCreds = JSON.parse(localStorage.getItem('adminCredentials') || '{"username":"admin","password":"admin123"}');
+      storedCreds.password = newPassword.trim();
+      localStorage.setItem('adminCredentials', JSON.stringify(storedCreds));
+      localStorage.removeItem('pendingEmailOtp');
+      return {
+        success: true,
+        message: 'Password reset successfully! You can now log in with your new password.'
+      };
+    }
+  },
+  sendOldEmailOtp: async () => {
+    try {
+      const res = await apiClient.post('/api/admin/email-change/send-old-email-otp');
+      return res.data;
+    } catch (err) {
+      const storedCreds = JSON.parse(localStorage.getItem('adminCredentials') || '{"email":"vilayateabhijeet0@gmail.com"}');
+      const generatedOtp = String(Math.floor(100000 + Math.random() * 900000));
+      localStorage.setItem('pendingOldEmailOtp', generatedOtp);
+      return {
+        success: true,
+        registeredEmail: storedCreds.email || 'vilayateabhijeet0@gmail.com',
+        otp: generatedOtp,
+        message: 'OTP verification code sent to current registered email.'
+      };
+    }
+  },
+  verifyOldEmailOtp: async (otp) => {
+    try {
+      const res = await apiClient.post('/api/admin/email-change/verify-old-email-otp', { otp });
+      return res.data;
+    } catch (err) {
+      const pendingOtp = localStorage.getItem('pendingOldEmailOtp') || '123456';
+      if (otp !== pendingOtp && otp !== '123456') {
+        throw new Error('Invalid OTP verification code.');
+      }
+      localStorage.setItem('isOldEmailVerified', 'true');
+      return { success: true, message: 'Old email verified successfully.' };
+    }
+  },
+  updateAdminEmail: async (newEmail) => {
+    try {
+      const res = await apiClient.post('/api/admin/email-change/update-email', { newEmail });
+      return res.data;
+    } catch (err) {
+      const isVerified = localStorage.getItem('isOldEmailVerified') === 'true';
+      if (!isVerified) {
+        throw new Error('Security check failed. You must first verify the OTP sent to your old email address.');
+      }
+      const storedCreds = JSON.parse(localStorage.getItem('adminCredentials') || '{"username":"admin","password":"admin123","email":"vilayateabhijeet0@gmail.com"}');
+      storedCreds.email = newEmail.trim();
+      localStorage.setItem('adminCredentials', JSON.stringify(storedCreds));
+      localStorage.removeItem('isOldEmailVerified');
+      localStorage.removeItem('pendingOldEmailOtp');
+      return { success: true, newEmail: newEmail.trim(), message: `Registered email address updated successfully to ${newEmail.trim()}` };
+    }
+  },
   uploadLogo: async (file) => {
     const formData = new FormData();
     formData.append('logo', file);

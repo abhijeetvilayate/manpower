@@ -6,4 +6,15 @@ spring:
     name: manpower-backend
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://vilayateabhijeet1073_db_user:i4Le3SOI4OpgW03f@test.7odiwof.mongodb.net/alaqsha_manpower?retryWrites=true&w=majority}
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://vilayateabhijeet1073_db_user:lMINfkTPm2eAlcni@manpower.sfbkpjq.mongodb.net/alaqsha_manpower?retryWrites=true&appName=manpower}
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.gmail.com}
+    port: ${SPRING_MAIL_PORT:587}
+    username: ${SPRING_MAIL_USERNAME:vilayateabhijeet0@gmail.com}
+    password: ${SPRING_MAIL_PASSWORD:ndicdrvpqesdtanr}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+

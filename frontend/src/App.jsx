@@ -9,11 +9,23 @@ import ContactPage from './pages/ContactPage';
 import AdminPage from './pages/AdminPage';
 import EnquiryModal from './components/common/EnquiryModal';
 import StaffLoginModal from './components/common/StaffLoginModal';
+import SubServicesModal from './components/common/SubServicesModal';
+import IndustrySubModal from './components/common/IndustrySubModal';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStaffLoginOpen, setIsStaffLoginOpen] = useState(false);
+
+  // Service Modal States
+  const [isSubServicesModalOpen, setIsSubServicesModalOpen] = useState(false);
+  const [selectedServiceForModal, setSelectedServiceForModal] = useState(null);
+  const [selectedSubServiceForModal, setSelectedSubServiceForModal] = useState('');
+
+  // Industry Modal States
+  const [isIndustrySubModalOpen, setIsIndustrySubModalOpen] = useState(false);
+  const [selectedIndustryForModal, setSelectedIndustryForModal] = useState(null);
+
   const [siteContactInfo, setSiteContactInfo] = useState(null);
   const [companyLogoUrl, setCompanyLogoUrl] = useState(localStorage.getItem('customCompanyLogo') || '/AV.png');
   const [selectedIndustryFilter, setSelectedIndustryFilter] = useState('');
@@ -58,7 +70,48 @@ export default function App() {
     navigateTo('careers');
   };
 
-  const openEnquiryModal = () => {
+  const handleOpenSubServicesModal = (serviceCategory) => {
+    setSelectedServiceForModal(serviceCategory);
+    setIsSubServicesModalOpen(true);
+  };
+
+  const handleSelectServiceWithSub = (serviceCategory, subServiceTitle) => {
+    setSelectedServiceForModal(serviceCategory);
+    setSelectedSubServiceForModal(subServiceTitle || '');
+    setIsSubServicesModalOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenIndustrySubModal = (industryObj) => {
+    setSelectedIndustryForModal(industryObj);
+    setIsIndustrySubModalOpen(true);
+  };
+
+  const handleSelectIndustryWithJob = (industryObj, jobTitle) => {
+    const serviceEquivalent = {
+      id: industryObj.id || industryObj.name,
+      title: industryObj.name || industryObj.title
+    };
+    setSelectedServiceForModal(serviceEquivalent);
+    setSelectedSubServiceForModal(jobTitle || '');
+    setIsIndustrySubModalOpen(false);
+    setIsModalOpen(true);
+  };
+
+  const openEnquiryModal = (serviceCategory = null, subServiceTitle = '') => {
+    if (serviceCategory) {
+      if (serviceCategory.name && !serviceCategory.title) {
+        setSelectedServiceForModal({
+          id: serviceCategory.id || serviceCategory.name,
+          title: serviceCategory.name
+        });
+      } else {
+        setSelectedServiceForModal(serviceCategory);
+      }
+    }
+    if (subServiceTitle !== undefined) {
+      setSelectedSubServiceForModal(subServiceTitle);
+    }
     setIsModalOpen(true);
   };
 
@@ -98,6 +151,10 @@ export default function App() {
     onNavigateCareersWithFilter: navigateToCareersWithFilter,
     onNavigateContact: () => navigateTo('contact'),
     onOpenEnquiry: openEnquiryModal,
+    onSelectServiceCategory: handleOpenSubServicesModal,
+    onSelectServiceWithSub: handleSelectServiceWithSub,
+    onSelectIndustryCategory: handleOpenIndustrySubModal,
+    onSelectIndustryWithJob: handleSelectIndustryWithJob,
     onOpenStaffLogin: openStaffLogin,
     customContactInfo: siteContactInfo,
     companyLogoUrl: companyLogoUrl
@@ -134,13 +191,31 @@ export default function App() {
     <>
       {renderActivePage()}
 
+      {/* Sub-Services List Popup Modal */}
+      <SubServicesModal
+        isOpen={isSubServicesModalOpen}
+        onClose={() => setIsSubServicesModalOpen(false)}
+        service={selectedServiceForModal}
+        onSelectSubService={handleSelectServiceWithSub}
+      />
+
+      {/* Industry Job Roles Popup Modal */}
+      <IndustrySubModal
+        isOpen={isIndustrySubModalOpen}
+        onClose={() => setIsIndustrySubModalOpen(false)}
+        industry={selectedIndustryForModal}
+        onSelectIndustryJob={handleSelectIndustryWithJob}
+      />
+
       {/* Standalone Reusable Enquiry Modal */}
       <EnquiryModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        selectedService={selectedServiceForModal}
+        selectedSubService={selectedSubServiceForModal}
       />
 
-      {/* Staff & Owner Login Modal - Triggered exclusively from Contact Us Page */}
+      {/* Staff & Owner Login Modal */}
       <StaffLoginModal
         isOpen={isStaffLoginOpen}
         onClose={() => setIsStaffLoginOpen(false)}
@@ -149,15 +224,15 @@ export default function App() {
 
       {/* Floating Session Timeout Alert Banner */}
       {sessionExpiredNotice && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#0B1B3D] text-white p-4 rounded-xl shadow-2xl border-2 border-amber-400 flex items-center gap-3 animate-bounce">
-          <AlertCircle className="w-6 h-6 text-amber-400 flex-shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 bg-[#171717] text-white p-4 rounded-xl shadow-2xl border-2 border-[#C9A227] flex items-center gap-3 animate-bounce font-body">
+          <AlertCircle className="w-6 h-6 text-[#C9A227] flex-shrink-0" />
           <div>
-            <h4 className="font-extrabold text-sm text-amber-300">Session Expired</h4>
-            <p className="text-xs text-slate-300">You were automatically logged out due to inactivity timeout.</p>
+            <h4 className="font-heading font-extrabold text-sm text-[#C9A227]">Session Expired</h4>
+            <p className="text-xs text-stone-300">You were automatically logged out due to inactivity timeout.</p>
           </div>
           <button
             onClick={() => setSessionExpiredNotice(false)}
-            className="ml-3 text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-md cursor-pointer"
+            className="ml-3 text-xs font-heading font-black bg-[#C9A227] hover:bg-[#B38F1F] text-[#171717] px-3 py-1.5 rounded-md cursor-pointer transition-colors"
           >
             Dismiss
           </button>

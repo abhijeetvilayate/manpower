@@ -1,0 +1,24 @@
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+spring:
+  application:
+    name: alaqsha-manpower-backend
+
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb+srv://vilayateabhijeet1073_db_user:lMINfkTPm2eAlcni@manpower.sfbkpjq.mongodb.net/alaqsha_manpower?retryWrites=true&appName=manpower}
+
+logging:
+  level:
+    root: WARN
+    com.alaqsha: INFO
+    org.springframework.web: WARN
+    org.hibernate: ERROR

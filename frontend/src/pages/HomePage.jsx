@@ -15,10 +15,12 @@ export default function HomePage({
   onNavigateIndustries,
   onNavigateCareers,
   onNavigateContact,
-  onOpenEnquiry
+  onOpenEnquiry,
+  onSelectServiceCategory,
+  customContactInfo
 }) {
   return (
-    <div className="min-h-screen bg-slate-100 font-sans text-slate-800 flex flex-col animate-fade-in">
+    <div className="min-h-screen bg-[#FAF8F3] font-sans-modern text-[#121417] flex flex-col">
       {/* 1. Header Navigation */}
       <Navbar
         activePage="home"
@@ -34,11 +36,14 @@ export default function HomePage({
       {/* 2. Hero Section */}
       <HeroBanner onNavigateServices={onNavigateServices} />
 
-      {/* 3. Floating Highlights */}
-      <FeatureHighlights />
+      {/* 3. Feature Highlights Cards */}
+      <FeatureHighlights onOpenEnquiry={onOpenEnquiry} />
 
       {/* 4. Services Section */}
-      <ServicesSection onSelectService={onNavigateServices} />
+      <ServicesSection
+        onSelectServiceCategory={onSelectServiceCategory}
+        onOpenEnquiry={onOpenEnquiry}
+      />
 
       {/* 5. Industries Section */}
       <IndustriesSection onNavigateIndustries={onNavigateIndustries} />
@@ -50,7 +55,7 @@ export default function HomePage({
       <CareersSection onNavigateCareers={onNavigateCareers} />
 
       {/* 8. Contact Section */}
-      <ContactSection />
+      <ContactSection customContactInfo={customContactInfo} />
 
       {/* 9. Footer */}
       <Footer

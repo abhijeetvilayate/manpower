@@ -18,9 +18,8 @@
     }
 
     ::selection {
-        background-color: #f59e0b;
-        /* amber-500 */
-        color: #ffffff;
+        background-color: #D4AF37;
+        color: #0B0C10;
     }
 }
 
@@ -40,7 +39,7 @@
     }
 
     .animate-fadeIn {
-        animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 }
 
@@ -51,17 +50,15 @@
 }
 
 ::-webkit-scrollbar-track {
-    background: #0f172a;
-    /* slate-900 */
+    background: #0B0C10;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #334155;
-    /* slate-700 */
+    background: #272938;
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #f59e0b;
-    /* amber-500 */
+    background: #D4AF37;
 }
+
