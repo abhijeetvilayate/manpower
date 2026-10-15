@@ -1,4 +1,11 @@
 {
+  "name": "manpower-portal",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend install --legacy-peer-deps && npm --prefix frontend run build",
+    "start": "npm --prefix frontend run preview"
+  },
   "dependencies": {
     "mongodb": "^7.6.0",
     "mongosh": "^2.10.0"
